@@ -15,7 +15,6 @@ resource "aws_subnet" "image_builder" {
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
   availability_zone       = "${data.aws_region.current.name}a"
-
   tags = {
     Name = "image-builder-subnet"
   }
@@ -50,6 +49,37 @@ resource "aws_route_table_association" "image_builder" {
   route_table_id = aws_route_table.image_builder.id
 }
 
+# Get current AWS account ID
+data "aws_caller_identity" "current" {}
+
+# Create S3 bucket for Image Builder logs
+resource "aws_s3_bucket" "image_builder_logs" {
+  bucket = "image-pipeline-logs-${data.aws_caller_identity.current.account_id}"
+
+  tags = {
+    Name        = "Image Builder Logs"
+    Environment = "Production"
+  }
+}
+
+# Enable versioning for the bucket
+resource "aws_s3_bucket_versioning" "image_builder_logs" {
+  bucket = aws_s3_bucket.image_builder_logs.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Block public access to the bucket
+resource "aws_s3_bucket_public_access_block" "image_builder_logs" {
+  bucket = aws_s3_bucket.image_builder_logs.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 module "windows_server_2022_pipeline" {
   source = "./modules/image-builder-pipeline"
 
@@ -71,8 +101,12 @@ module "windows_server_2022_pipeline" {
   regions = ["ap-southeast-1"]
 
   # Schedule configuration (optional)
-  schedule_cron = "0 0 ? * * *" # AWS cron format: run daily at midnight
+  schedule_cron = "0 0 ? * TUE#2 *" # AWS cron format: run at midnight on the second Tuesday of every month
   schedule_tz   = "UTC"
+
+  # Logging configuration
+  logging_bucket = aws_s3_bucket.image_builder_logs.id
+  logging_prefix = "windows-server-2022/"
 
   # Tags
   tags = {
@@ -122,4 +156,28 @@ module "windows_2022_recipe" {
     OS          = "Windows"
     Version     = "2022"
   }
+}
+
+# Create IAM policy for S3 logging
+resource "aws_iam_role_policy" "image_builder_s3_logs" {
+  name = "image-builder-s3-logs"
+  role = module.windows_server_2022_pipeline.image_builder_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.image_builder_logs.arn,
+          "${aws_s3_bucket.image_builder_logs.arn}/*"
+        ]
+      }
+    ]
+  })
 }

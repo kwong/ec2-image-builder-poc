@@ -49,9 +49,6 @@ resource "aws_route_table_association" "image_builder" {
   route_table_id = aws_route_table.image_builder.id
 }
 
-# Get current AWS account ID
-data "aws_caller_identity" "current" {}
-
 # Create S3 bucket for Image Builder logs
 resource "aws_s3_bucket" "image_builder_logs" {
   bucket = "image-pipeline-logs-${data.aws_caller_identity.current.account_id}"
@@ -78,6 +75,18 @@ resource "aws_s3_bucket_public_access_block" "image_builder_logs" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# Update S3 bucket to use KMS encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "image_builder_logs" {
+  bucket = aws_s3_bucket.image_builder_logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = data.aws_kms_key.cmk_non_db.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
 }
 
 module "windows_server_2022_pipeline" {
@@ -108,29 +117,13 @@ module "windows_server_2022_pipeline" {
   logging_bucket = aws_s3_bucket.image_builder_logs.id
   logging_prefix = "windows-server-2022/"
 
+  # Add KMS key for AMI encryption
+  kms_key_id = data.aws_kms_key.cmk_non_db.arn
+
   # Tags
   tags = {
     Environment = "Production"
     Purpose     = "Windows Server 2022 Image Creation"
-  }
-}
-
-# Data source for current region
-data "aws_region" "current" {}
-
-# Get latest Windows Server 2022 AMI
-data "aws_ami" "windows_2022" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["Windows_Server-2022-English-Full-Base*"]
-  }
-
-  filter {
-    name   = "state"
-    values = ["available"]
   }
 }
 

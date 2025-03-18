@@ -102,3 +102,16 @@ variable "tags" {
   description = "Tags to apply to resources"
   default     = {}
 }
+
+# Logging configuration
+variable "logging_bucket" {
+  type        = string
+  description = "S3 bucket to store Image Builder logs"
+  default     = null
+}
+
+variable "logging_prefix" {
+  type        = string
+  description = "S3 bucket prefix for Image Builder logs"
+  default     = "image-builder/logs/"
+}

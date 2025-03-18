@@ -68,6 +68,17 @@ resource "aws_imagebuilder_infrastructure_configuration" "config" {
   terminate_instance_on_failure = true
   sns_topic_arn                 = var.sns_topic_arn
 
+  # Add logging configuration
+  dynamic "logging" {
+    for_each = var.logging_bucket != null ? [1] : []
+    content {
+      s3_logs {
+        s3_bucket_name = var.logging_bucket
+        s3_key_prefix  = var.logging_prefix
+      }
+    }
+  }
+
   tags = var.tags
 }
 
@@ -145,3 +156,13 @@ output "distribution_configuration_arn" {
   description = "ARN of the Image Builder distribution configuration"
 }
 
+output "image_builder_role_arn" {
+  value       = aws_iam_role.image_builder_role.arn
+  description = "ARN of the Image Builder IAM role"
+}
+
+# Add new output for role name
+output "image_builder_role_name" {
+  value       = aws_iam_role.image_builder_role.name
+  description = "Name of the Image Builder IAM role"
+}

@@ -23,4 +23,4 @@ data "aws_ami" "windows_2022" {
     name   = "state"
     values = ["available"]
   }
-} 
+}

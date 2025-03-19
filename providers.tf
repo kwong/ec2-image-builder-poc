@@ -12,4 +12,6 @@ terraform {
       version = "~> 4.0"
     }
   }
-} 
+}
+
+provider "random" {}

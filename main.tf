@@ -49,9 +49,16 @@ resource "aws_route_table_association" "image_builder" {
   route_table_id = aws_route_table.image_builder.id
 }
 
+# Random string for S3 bucket name
+resource "random_string" "bucket_suffix" {
+  length  = 4
+  special = false
+  upper   = false
+}
+
 # Create S3 bucket for Image Builder logs
 resource "aws_s3_bucket" "image_builder_logs" {
-  bucket = "image-pipeline-logs-${data.aws_caller_identity.current.account_id}"
+  bucket = "image-pipeline-logs-${data.aws_caller_identity.current.account_id}-${random_string.bucket_suffix.result}"
 
   tags = {
     Name        = "Image Builder Logs"
@@ -93,9 +100,9 @@ module "windows_server_2022_pipeline" {
   source = "./modules/image-builder-pipeline"
 
   # Basic configuration
-  pipeline_name    = "windows-server-2022-pipeline"
-  description      = "Pipeline for creating Windows Server 2022 images with latest updates"
-  image_name       = "windows-server-2022"
+  pipeline_name    = var.pipeline_name
+  description      = var.pipeline_description
+  image_name       = var.image_name
   image_recipe_arn = module.windows_2022_recipe.recipe_arn
 
   # Network configuration
@@ -104,47 +111,44 @@ module "windows_server_2022_pipeline" {
 
   # Testing configuration
   image_tests_enabled         = true
-  image_tests_timeout_minutes = 120
+  image_tests_timeout_minutes = var.image_tests_timeout_minutes
 
   # Distribution configuration
-  regions = ["ap-southeast-1"]
+  regions          = var.distribution_regions
+  organization_arn = var.organization_arn
 
-  # Schedule configuration (optional)
-  schedule_cron = "0 0 ? * TUE#2 *" # AWS cron format: run at midnight on the second Tuesday of every month
-  schedule_tz   = "UTC"
+  # Schedule configuration
+  schedule_cron = var.schedule_cron
+  schedule_tz   = var.schedule_tz
 
   # Logging configuration
   logging_bucket = aws_s3_bucket.image_builder_logs.id
-  logging_prefix = "windows-server-2022/"
 
   # Add KMS key for AMI encryption
   kms_key_id = data.aws_kms_key.cmk_non_db.arn
 
-  # Tags
   tags = {
     Environment = "Production"
     Purpose     = "Windows Server 2022 Image Creation"
   }
 }
 
-# Create Windows Server 2022 recipe
 module "windows_2022_recipe" {
   source = "./modules/image-builder-recipe"
 
-  name           = "windows-server-2022"
-  description    = "Windows Server 2022 with latest updates"
-  recipe_version = "1.0.0"
-  platform       = "Windows"
+  name           = var.image_name
+  description    = var.pipeline_description
+  recipe_version = var.recipe_version
+  platform       = var.recipe_platform
   parent_image   = data.aws_ami.windows_2022.id
 
-  working_directory = "C:\\Windows\\Temp"
+  working_directory = var.recipe_working_directory
   update            = true
 
-  # Add any additional component ARNs if needed
-  component_arns = []
+  component_arns = var.component_arns
 
   tags = {
-    Name        = "windows-server-2022"
+    Name        = var.image_name
     Environment = "Production"
     OS          = "Windows"
     Version     = "2022"
@@ -169,6 +173,17 @@ resource "aws_iam_role_policy" "image_builder_s3_logs" {
         Resource = [
           aws_s3_bucket.image_builder_logs.arn,
           "${aws_s3_bucket.image_builder_logs.arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:GenerateDataKey",
+          "kms:Decrypt",
+          "kms:Encrypt"
+        ]
+        Resource = [
+          data.aws_kms_key.cmk_non_db.arn
         ]
       }
     ]

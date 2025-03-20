@@ -74,6 +74,7 @@ resource "aws_s3_bucket_versioning" "image_builder_logs" {
   versioning_configuration {
     status = "Enabled"
   }
+
 }
 
 # Block public access to the bucket

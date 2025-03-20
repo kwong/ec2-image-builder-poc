@@ -64,6 +64,8 @@ resource "aws_s3_bucket" "image_builder_logs" {
     Name        = "Image Builder Logs"
     Environment = "Production"
   }
+
+
 }
 
 # Enable versioning for the bucket
@@ -125,12 +127,14 @@ module "windows_server_2022_pipeline" {
   logging_bucket = aws_s3_bucket.image_builder_logs.id
 
   # Add KMS key for AMI encryption
-  kms_key_id = data.aws_kms_key.cmk_non_db.arn
+  kms_key_id = aws_kms_key.image_builder.arn
 
   tags = {
     Environment = "Production"
     Purpose     = "Windows Server 2022 Image Creation"
   }
+
+  depends_on = [module.windows_2022_recipe]
 }
 
 module "windows_2022_recipe" {
@@ -144,8 +148,23 @@ module "windows_2022_recipe" {
 
   working_directory = var.recipe_working_directory
   update            = true
+  kms_key_id        = aws_kms_key.image_builder.arn
 
   component_arns = var.component_arns
+
+  block_device_mappings = [
+    {
+      device_name = "/dev/sda1"
+      ebs = {
+        volume_size           = 100
+        volume_type           = "gp3"
+        encrypted             = true
+        kms_key_id            = aws_kms_key.image_builder.arn
+        delete_on_termination = true
+        throughput            = 125
+      }
+    }
+  ]
 
   tags = {
     Name        = var.image_name
@@ -154,6 +173,7 @@ module "windows_2022_recipe" {
     Version     = "2022"
   }
 }
+
 
 # Create IAM policy for S3 logging
 resource "aws_iam_role_policy" "image_builder_s3_logs" {
@@ -183,7 +203,8 @@ resource "aws_iam_role_policy" "image_builder_s3_logs" {
           "kms:Encrypt"
         ]
         Resource = [
-          data.aws_kms_key.cmk_non_db.arn
+          data.aws_kms_key.cmk_non_db.arn,
+          aws_kms_key.image_builder.arn
         ]
       }
     ]

@@ -105,7 +105,7 @@ resource "aws_imagebuilder_distribution_configuration" "distribution" {
         ami_tags = merge(
           var.tags,
           {
-            Name = var.image_name
+            Name = "${var.image_name}"
           }
         )
       }

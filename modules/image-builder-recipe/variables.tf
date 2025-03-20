@@ -61,3 +61,23 @@ variable "tags" {
   description = "Tags to apply to the recipe"
   default     = {}
 }
+
+variable "block_device_mappings" {
+  description = "List of block device mappings for the image recipe"
+  type = list(object({
+    device_name           = string
+    delete_on_termination = optional(bool)
+    encrypted             = optional(bool)
+    iops                  = optional(number)
+    kms_key_id            = optional(string)
+    snapshot_id           = optional(string)
+    volume_size           = optional(number)
+    volume_type           = optional(string)
+  }))
+  default = []
+}
+
+variable "kms_key_id" {
+  type        = string
+  description = "KMS key ID for encrypting the root volume"
+}

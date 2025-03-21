@@ -74,7 +74,6 @@ resource "aws_s3_bucket_versioning" "image_builder_logs" {
   versioning_configuration {
     status = "Enabled"
   }
-
 }
 
 # Block public access to the bucket
@@ -151,7 +150,10 @@ module "windows_2022_recipe" {
   update            = true
   kms_key_id        = aws_kms_key.image_builder.arn
 
-  component_arns = var.component_arns
+  # Attach component to recipe
+  component_arns = [
+    module.hello_world_component.component_arn
+  ]
 
   block_device_mappings = [
     {
@@ -211,3 +213,16 @@ resource "aws_iam_role_policy" "image_builder_s3_logs" {
     ]
   })
 }
+
+# Create component to print hello world 
+module "hello_world_component" {
+  source = "./modules/image-builder-component-shell"
+
+  component_name = "HelloWorld"
+  platform       = "Linux"
+  commands       = ["echo 'Hello, World!'"]
+  tags = {
+    Environment = "Production"
+  }
+}
+

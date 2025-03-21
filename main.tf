@@ -219,8 +219,8 @@ module "hello_world_component" {
   source = "./modules/image-builder-component-shell"
 
   component_name = "HelloWorld"
-  platform       = "Linux"
-  commands       = ["echo 'Hello, World!'"]
+  platform       = "Windows"
+  commands       = ["Write-Host 'Hello, World!'"]
   tags = {
     Environment = "Production"
   }

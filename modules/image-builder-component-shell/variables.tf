@@ -18,7 +18,7 @@ variable "platform" {
   }
 }
 
-variable "version" {
+variable "component_version" {
   type        = string
   description = "Version of the component"
   default     = "1.0.0"

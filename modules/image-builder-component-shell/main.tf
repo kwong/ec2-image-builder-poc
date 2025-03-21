@@ -2,7 +2,7 @@ resource "aws_imagebuilder_component" "shell" {
   name        = var.component_name
   description = var.description
   platform    = var.platform
-  version     = var.version
+  version     = var.component_version
 
   data = yamlencode({
     schemaVersion = 1.0

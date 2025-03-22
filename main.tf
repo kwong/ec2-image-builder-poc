@@ -220,7 +220,8 @@ module "hello_world_component" {
 
   component_name = "HelloWorld"
   platform       = "Windows"
-  commands       = ["Write-Host 'Hello, World!'"]
+  commands       = ["Write-Host 'Hello, World! This will now exit with an error' -ErrorAction Stop"]
+  on_failure     = "Abort"
   tags = {
     Environment = "Production"
   }

@@ -222,7 +222,7 @@ module "hello_world_component" {
   platform       = "Windows"
   commands = [
     "$ErrorActionPreference = 'Stop'",
-    "Write-Host 'Hello, World! This will now exit with an error' -ErrorAction Stop"
+    "Write-Error 'Hello, World! This will now exit with an error' -ErrorAction Stop"
   ]
   on_failure = "Abort"
   tags = {

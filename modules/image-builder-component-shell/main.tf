@@ -8,7 +8,7 @@ resource "aws_imagebuilder_component" "shell" {
     schemaVersion = 1.0
     phases = [
       {
-        name = "build"
+        name = var.phase
         steps = [
           {
             name      = "ExecuteShellCommand"

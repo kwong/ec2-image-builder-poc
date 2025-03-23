@@ -216,8 +216,8 @@ resource "aws_iam_role_policy" "image_builder_s3_logs" {
 
 # Create component to print hello world 
 module "hello_world_component" {
-  source = "./modules/image-builder-component-shell"
-
+  source         = "./modules/image-builder-component-shell"
+  phase          = "build"
   component_name = "HelloWorld"
   platform       = "Windows"
   commands = [

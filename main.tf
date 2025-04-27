@@ -144,7 +144,8 @@ module "windows_2022_recipe" {
   description    = var.pipeline_description
   recipe_version = var.recipe_version
   platform       = var.recipe_platform
-  parent_image   = data.aws_ami.windows_2022.id
+  #parent_image   = data.aws_ami.windows_2022.id
+  parent_image = "arn:aws:imagebuilder:ap-southeast-1:aws:image/windows-server-2022-english-full-base-x86/x.x.x"
 
   working_directory = var.recipe_working_directory
   update            = true
@@ -152,7 +153,7 @@ module "windows_2022_recipe" {
 
   # Attach component to recipe
   component_arns = [
-    module.hello_world_component.component_arn
+    module.update_sysprep_timezone_component.component_arn
   ]
 
   block_device_mappings = [
@@ -227,6 +228,27 @@ module "hello_world_component" {
   on_failure = "Abort"
   tags = {
     Environment = "Production"
+  }
+}
+
+module "update_sysprep_timezone_component" {
+  source         = "./modules/image-builder-component-shell"
+  phase          = "build"
+  component_name = "UpdateSysprepTimezone"
+  platform       = "Windows"
+  description    = "Updates Windows sysprep file to set Singapore timezone"
+  commands = [
+    "$sysprepFile = 'C:\\ProgramData\\Amazon\\EC2Launch\\sysprep\\unattend.xml'",
+    "$content = Get-Content $sysprepFile",
+    "$content = $content -replace '<TimeZone>.*?</TimeZone>', '<TimeZone>Singapore Standard Time</TimeZone>'",
+    "$content | Set-Content $sysprepFile -Force",
+    "# Verify the change",
+    "Select-String -Path $sysprepFile -Pattern 'Singapore Standard Time'"
+  ]
+  on_failure = "Abort"
+  tags = {
+    Environment = "Production"
+    Purpose     = "Timezone Configuration"
   }
 }
 

@@ -44,3 +44,13 @@ variable "tags" {
   description = "Tags to apply to the component"
   default     = {}
 }
+
+variable "phase" {
+  type        = string
+  description = "Phase in which to run the commands (build, validate, or test)"
+  default     = "build"
+  validation {
+    condition     = contains(["build", "validate", "test"], var.phase)
+    error_message = "Phase must be one of: build, validate, or test."
+  }
+}

@@ -15,12 +15,12 @@ terraform {
       version = "3.1.0"
     }
   }
-  cloud {
-    organization = "Ollion_Trail"
-    workspaces {
-      name = "ec2-image-builder-poc"
-    }
-  }
+  # cloud {
+  #   organization = "Ollion_Trail"
+  #   workspaces {
+  #     name = "ec2-image-builder-poc"
+  #   }
+  # }
 }
 
 provider "random" {}
